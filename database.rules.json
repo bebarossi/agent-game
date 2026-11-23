@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "state": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'beatricerossi1202@gmail.com'"
+    },
+    "votes": {
+      ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'beatricerossi1202@gmail.com'",
+      ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'beatricerossi1202@gmail.com'",
+      "$case": {
+        "$uid": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid && root.child('state/phase').val() == 'vote' && root.child('state/caseKey').val() == $case && now < root.child('state/deadline').val() + 2000",
+          ".validate": "newData.hasChildren(['c', 't']) && newData.child('c').isString() && newData.child('c').val().matches(/^[ABC]$/) && newData.child('t').val() == now"
+        }
+      }
+    },
+    "presence": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && auth.uid == $uid",
+        ".validate": "newData.isBoolean()"
+      }
+    }
+  }
+}
