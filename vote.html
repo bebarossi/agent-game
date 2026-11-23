@@ -37,7 +37,8 @@
   .result { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 8px; }
   .big { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 4px 0 8px; }
   .row { display: flex; justify-content: space-between; font-size: 16px; padding: 9px 0; border-top: 1px solid var(--line); }
-  .row b { font-variant-numeric: tabular-nums; }
+  .row b { font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 12px; }
+  h3 { font-size: 18px; margin: 22px 0 6px; }
   .wait { font-size: 15px; color: var(--body); margin-top: 22px; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; vertical-align: 1px; }
 </style>
@@ -49,8 +50,8 @@
 </main>
 
 <script type="module">
-import { connect } from "./backend.js";
-import { CASES } from "./data.js";
+import { connect } from "./backend.js?v=5";
+import { CASES } from "./data.js?v=5";
 
 const ACT = (c) => ({
   A: { name: `Buy ${c.A} \u00b7 Sell ${c.B}`, sub: "Bet the gap closes", col: "#222222" },
@@ -152,10 +153,32 @@ function render(force) {
   if (ph === "final") {
     let tot = 0, n = 0;
     for (const k of ["c0", "c1"]) if (mine[k]) { tot += caseOf(k).payoff[mine[k]]; n++; }
+    const col = (v) => (v > 0 ? "#0b6e4f" : v < 0 ? "#e4572e" : "#6b6b6b");
+    const row = (a, v, strong) => { const d = h("div", "row"); const l = h("span", "", a); const r = h("b", "", v === null ? "\u2013" : money(v)); if (v !== null) r.style.color = col(v); if (strong) l.style.fontWeight = 700; d.append(l, r); return d; };
+    const sumV = (k) => CASES[0].versions[k].res + CASES[1].versions[k].res;
+    const best = Math.max(...Object.values(CASES[0].payoff)) + Math.max(...Object.values(CASES[1].payoff));
+
     view.append(h("div", "kicker", "Your result"), h("h1", "", "Thanks for playing"));
-    const big = h("div", "big", n ? money(Math.round(tot * 10) / 10) : "–"); big.style.color = tot > 0 ? "#0b6e4f" : tot < 0 ? "#e4572e" : "#6b6b6b";
-    view.append(h("p", "", n ? `Your total over ${n} case${n > 1 ? "s" : ""}, with $10,000 on each leg:` : "You didn't vote."), big,
-      h("p", "", `Our versions over the two cases: A ${money(CASES[0].versions.A.res + CASES[1].versions.A.res)}, B ${money(CASES[0].versions.B.res + CASES[1].versions.B.res)}, C ${money(CASES[0].versions.C.res + CASES[1].versions.C.res)}.`));
+    const big = h("div", "big", n ? money(Math.round(tot * 10) / 10) : "\u2013"); big.style.color = col(tot);
+    view.append(h("p", "", n ? `Your total over ${n} case${n > 1 ? "s" : ""}, with $10,000 on each leg, before costs:` : "You didn't vote."), big);
+
+    view.append(h("h3", "", "Your choices"));
+    ["c0", "c1"].forEach((k, i) => {
+      const c = caseOf(k);
+      view.append(row(`Case ${i + 1} \u00b7 ${c.A}\u2013${c.B}: ${mine[k] ? ACT(c)[mine[k]].name : "no vote"}`, mine[k] ? c.payoff[mine[k]] : null));
+    });
+
+    view.append(h("h3", "", "Our three versions"));
+    view.append(row("A \u00b7 trade every signal", sumV("A")), row("B \u00b7 the agent can block", sumV("B")), row("C \u00b7 the agent can follow the news", sumV("C")), row("Best possible choice", best));
+
+    view.append(h("h3", "", "What this shows"));
+    view.append(
+      h("p", "", "The signal alone (A) was right in case 1 and wrong in case 2: the gap usually closes, but not when the news behind it is real."),
+      h("p", "", "Our agent saw the same thing both times: a strong headline on one company with an event word. It reads the words, not the meaning, so it cannot tell a law firm\u2019s advert from a $5.7 billion acquisition."),
+      h("p", "", "B stayed out both times: it missed +$37.5 in case 1 and avoided \u2212$95.2 in case 2. C read the Salesforce deal as good news and bought the stock, but the market sold the buyer."),
+      h("p", "", "On the whole test (500 trades, 32 days), B ended $189 below A and C $1,242 below A: reading headlines did not beat trading every signal."),
+      h("p", "", n && tot > sumV("B") ? "You beat our agent: you read what the news meant, not just its words. That is the next step for the project: a stronger agent." : "Next step for the project: an agent that reads what the news means, not just its words."),
+    );
   }
 }
 render();

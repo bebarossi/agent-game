@@ -41,7 +41,7 @@
   .foot { position: absolute; left: 60px; bottom: 48px; font-size: 13px; color: var(--body); }
 
   /* case */
-  .case-grid { position: absolute; left: 60px; right: 40px; top: 150px; bottom: 0; display: grid; grid-template-columns: 720px 1fr; gap: 36px; }
+  .case-grid { position: absolute; left: 60px; right: 40px; top: 146px; bottom: 0; display: grid; grid-template-columns: 720px 1fr; gap: 36px; }
   .charts svg { display: block; width: 100%; }
   .news h3 { font-size: 21px; margin: 0 0 12px; }
   .item { border-top: 1px solid var(--line); padding: 10px 0 11px; }
@@ -66,14 +66,14 @@
   .bar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; width: 0; transition: width 1.2s ease-out; }
   .bar .res { white-space: nowrap; font-size: 18px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
   .agenttag { font-size: 11px; font-weight: 700; color: #fff; background: var(--ink); padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: 2px; }
-  .resnote { font-size: 12.5px; color: var(--body); margin-top: 8px; }
-  .vh { font-size: 19px; margin: 18px 0 6px; }
-  .ver { display: grid; grid-template-columns: 26px 1fr 96px; align-items: baseline; border-top: 1px solid var(--line); padding: 7px 0; }
+  .resnote { font-size: 12.5px; color: var(--body); margin-top: 4px; }
+  .vh { font-size: 19px; margin: 14px 0 4px; }
+  .ver { display: grid; grid-template-columns: 26px 1fr 90px; align-items: baseline; border-top: 1px solid var(--line); padding: 5px 0; }
   .ver .L { font-size: 20px; font-weight: 700; }
-  .ver .d { font-size: 14.5px; line-height: 1.3; color: var(--body); }
+  .ver .d { font-size: 14px; line-height: 1.3; color: var(--body); }
   .ver .d b { color: var(--ink); display: block; font-size: 15px; }
   .ver .r { font-size: 18px; font-weight: 700; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .why { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; font-size: 15px; line-height: 1.38; color: var(--body); }
+  .why { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 14px; line-height: 1.36; color: var(--body); }
   .why b { color: var(--ink); }
 
   /* final */
@@ -159,6 +159,7 @@
         <h3 class="vh">What our versions did</h3>
         <div id="r-versions"></div>
         <div class="resnote">Result in dollars, $10,000 on each leg, before costs.</div>
+        <div class="why" id="r-why"></div>
         
       </div>
     </div>
@@ -193,12 +194,12 @@
   <button id="gate-btn">Sign in with Google</button>
 </div></div>
 
-<script src="qrcode.js"></script>
+<script src="qrcode.js?v=5"></script>
 <script type="module">
-import { connect } from "./backend.js";
-import { CASES } from "./data.js";
-import { VOTE_SECONDS } from "./config.js";
-import { priceChart, zChart, clock, COL } from "./chart.js";
+import { connect } from "./backend.js?v=5";
+import { CASES } from "./data.js?v=5";
+import { VOTE_SECONDS } from "./config.js?v=5";
+import { priceChart, zChart, clock, COL } from "./chart.js?v=5";
 
 // ---------- scale the 1280x720 stage to the window
 const stage = document.getElementById("stage");
@@ -318,13 +319,18 @@ function renderReveal() {
   const c = caseOf(state.caseKey), idx = +state.caseKey.slice(1);
   const key = "reveal" + state.caseKey;
   document.getElementById("r-kicker").textContent = `Case ${idx + 1} · what really happened`;
-  document.getElementById("r-title").textContent = c.revealTitle;
+  document.getElementById("r-title").textContent = c.revealTitle || "";
   priceChart(document.getElementById("r-price"), c, { w: 720, h: 330, reveal: true, animate: true });
   zChart(document.getElementById("r-z"), c, { w: 720, h: 104, reveal: true, animate: true });
-  document.getElementById("r-cap").textContent = `${c.nameA} (green) and ${c.nameB} (grey), change from the previous close in bps. In reality: ${c.reality}`;
+  document.getElementById("r-cap").textContent = `${c.nameA} (green) and ${c.nameB} (grey), ${c.dateLabel}, change from the previous close in bps.`;
+  const why = document.getElementById("r-why");
+  why.innerHTML = "";
+  const p1 = document.createElement("div"); const b1 = document.createElement("b"); b1.textContent = "The agent: "; p1.append(b1, c.agentWhy || "");
+  const p2 = document.createElement("div"); p2.style.marginTop = "6px"; const b2 = document.createElement("b"); b2.textContent = "In reality: "; p2.append(b2, c.truth || "");
+  why.append(p1, p2);
   const vh = document.getElementById("r-versions"); vh.innerHTML = "";
   for (const k of ["A", "B", "C"]) {
-    const v = c.versions[k];
+    const v = (c.versions || {})[k]; if (!v) continue;
     const row = document.createElement("div"); row.className = "ver";
     const L = document.createElement("div"); L.className = "L"; L.textContent = k; L.style.color = VER[k].col;
     const d = document.createElement("div"); d.className = "d";
@@ -383,6 +389,7 @@ function renderFinal() {
     ver("A", "A \u00b7 trade every signal"),
     ver("B", "B \u00b7 the agent can block"),
     ver("C", "C \u00b7 the agent can follow the news"),
+    ["", "Best possible choice", null, Math.max(...Object.values(CASES[0].payoff)), Math.max(...Object.values(CASES[1].payoff)), Math.max(...Object.values(CASES[0].payoff)) + Math.max(...Object.values(CASES[1].payoff))],
   ];
   for (const r of rows) {
     const tr = document.createElement("tr"); if (r[0]) tr.className = r[0];

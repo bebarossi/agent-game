@@ -14,7 +14,7 @@
 //   onPresenceCount(cb)              cb(n)
 //   signInPresenter(), signOut()     firebase only
 
-import { FIREBASE_CONFIG, PRESENTER_EMAIL } from "./config.js";
+import { FIREBASE_CONFIG, PRESENTER_EMAIL } from "./config.js?v=5";
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 
