@@ -49,8 +49,10 @@ Votes go through Firebase (free) and the site is hosted on GitHub Pages (free). 
 
 ## Content
 
-- Case 1: Intuitive Surgical – Stryker, 25 Sep 2026, signal 9:45 (signal_id 80 of `Results/test`). The agent blocks; the trade would have made +37.5 bps.
-- Case 2: Salesforce – Workday, 20 Oct 2026, signal 9:50 (signal_id 353). The agent blocks; the trade would have lost −95.2 bps.
+- Phones choose one of three moves: buy the laggard and sell the leader, stay out, or the opposite.
+- After each vote the screen shows what versions A, B and C really did on that signal (`Results/test/decisions.csv`, `trades_A.csv`, `trades_C.csv`):
+  - Case 1, Intuitive Surgical – Stryker, 25 Sep 2026, signal 9:45 (signal_id 80): A +37.5 bps, B blocks, C blocks.
+  - Case 2, Salesforce – Workday, 20 Oct 2026, signal 9:50 (signal_id 353): A −95.2 bps, B blocks, C follows the news on the same side as A, −95.2 bps.
 - Prices: `pairs_intraday_v2`, change from the previous close. The z-score is recomputed with the rules of `signals.py` (continuous EMA, 60-minute half-life) and matches `signals_test.csv`.
-- The result of each choice in dollars = gross bps with $10,000 on each leg, as on slide 7. "Bet it widens" is the opposite trade with the same entry and exit.
-- Without Firebase (`config.js` empty) the page runs in DEMO mode: it works only between tabs of the same browser, with a "+20 test votes" button for rehearsing alone.
+- Results in dollars = gross bps with $10,000 on each leg, as on slide 7. The opposite move has the same entry and exit as A.
+- Without Firebase (`config.js` with an empty apiKey) the page runs in DEMO mode: it works only between tabs of the same browser, with a "+20 test votes" button for rehearsing alone.

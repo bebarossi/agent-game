@@ -52,11 +52,11 @@
 import { connect } from "./backend.js";
 import { CASES } from "./data.js";
 
-const OPT = {
-  A: { name: "Bet it closes", col: "#0b6e4f" },
-  B: { name: "Stay out", col: "#d89b1f" },
-  C: { name: "Bet it widens", col: "#e4572e" },
-};
+const ACT = (c) => ({
+  A: { name: `Buy ${c.A} \u00b7 Sell ${c.B}`, sub: "Bet the gap closes", col: "#222222" },
+  B: { name: "Stay out", sub: "No trade", col: "#9aa0a6" },
+  C: { name: `Sell ${c.A} \u00b7 Buy ${c.B}`, sub: "Bet the gap keeps widening", col: "#222222" },
+});
 const money = (v) => (Math.abs(v) < 0.05 ? "$0" : (v > 0 ? "+$" : "\u2212$") + Math.abs(v).toFixed(1));
 const view = document.getElementById("view");
 const status = document.getElementById("status");
@@ -81,14 +81,12 @@ const fmtT = (s) => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
 
 function buttons(c, k, enabled) {
   const wrap = h("div");
-  const sub = { A: `Buy ${c.A} · Sell ${c.B}`, B: "No trade", C: `Sell ${c.A} · Buy ${c.B}` };
+  const act = ACT(c);
   const chosen = pending || mine[k];
   for (const o of ["A", "B", "C"]) {
-    const b = h("button", "btn"); b.style.borderLeftColor = OPT[o].col;
-    const t = h("b"); const L = h("span", "L", o); L.style.display = "inline"; L.style.color = chosen === o ? "#fff" : OPT[o].col;
-    t.append(L, document.createTextNode(OPT[o].name));
-    b.append(t, h("span", "", sub[o]));
-    if (chosen === o) { b.classList.add("sel"); b.style.background = OPT[o].col; b.style.borderColor = OPT[o].col; if (!enabled) b.classList.add("locked"); }
+    const b = h("button", "btn"); b.style.borderLeftColor = act[o].col;
+    b.append(h("b", "", act[o].name), h("span", "", act[o].sub));
+    if (chosen === o) { b.classList.add("sel"); b.style.background = act[o].col; b.style.borderColor = act[o].col; if (!enabled) b.classList.add("locked"); }
     b.disabled = !enabled;
     b.onclick = async () => {
       pending = o; errMsg = ""; render(true);
@@ -111,7 +109,7 @@ function render(force) {
   if (ph === "lobby") {
     view.append(h("div", "kicker", "Live experiment"), h("h1", "", "You are the news agent"),
       h("p", "", "Look at the big screen. For each case you'll see two similar stocks that drifted apart, and the headlines published before the signal."),
-      h("p", "", "You'll have 60 seconds to choose: bet the gap closes, stay out, or bet it widens."),
+      h("p", "", "You'll have 60 seconds to choose: buy the laggard and sell the leader, stay out, or the opposite. Then you'll see what our versions A, B and C did."),
       h("div", "wait", "Wait for the first case…"));
     return;
   }
@@ -141,12 +139,12 @@ function render(force) {
     view.append(h("div", "kicker", `Case ${idx + 1} · result`), h("h2", "", c.agentRight ? "The gap never closed" : "The gap closed"));
     const r = h("div", "result");
     if (my) {
-      r.append(h("p", "", `You chose ${my}, ${OPT[my].name.toLowerCase()}`));
+      r.append(h("p", "", `You chose: ${ACT(c)[my].name}`));
       const b = h("div", "big", money(c.payoff[my])); b.style.color = c.payoff[my] > 0 ? "#0b6e4f" : c.payoff[my] < 0 ? "#e4572e" : "#6b6b6b"; r.append(b);
     } else r.append(h("p", "", "You didn't vote on this case."));
-    const row = (a, v) => { const d = h("div", "row"); d.append(h("span", "", a), h("b", "", v)); return d; };
-    r.append(row("The agent: stayed out", money(c.payoff.B)), row("A: bet it closes", money(c.payoff.A)), row("C: bet it widens", money(c.payoff.C)));
-    r.append(h("p", "", " "), h("p", "", c.agentRight ? "The agent was right: the acquisition was real news." : "The agent was wrong: the ‘investigation’ was a law firm looking for clients."));
+    const row = (a, v) => { const d = h("div", "row"); d.append(h("span", "", a), h("b", "", money(v))); return d; };
+    r.append(row("Version A · trade every signal", c.versions.A.res), row("Version B · agent can block", c.versions.B.res), row("Version C · agent can follow the news", c.versions.C.res));
+    r.append(h("p", "", " "), h("p", "", c.phoneLine));
     view.append(r, h("div", "wait", "Look at the big screen."));
     return;
   }
@@ -157,7 +155,7 @@ function render(force) {
     view.append(h("div", "kicker", "Your result"), h("h1", "", "Thanks for playing"));
     const big = h("div", "big", n ? money(Math.round(tot * 10) / 10) : "–"); big.style.color = tot > 0 ? "#0b6e4f" : tot < 0 ? "#e4572e" : "#6b6b6b";
     view.append(h("p", "", n ? `Your total over ${n} case${n > 1 ? "s" : ""}, with $10,000 on each leg:` : "You didn't vote."), big,
-      h("p", "", "Our agent: $0 (it stayed out both times). Without the agent: −$57.7."));
+      h("p", "", `Our versions over the two cases: A ${money(CASES[0].versions.A.res + CASES[1].versions.A.res)}, B ${money(CASES[0].versions.B.res + CASES[1].versions.B.res)}, C ${money(CASES[0].versions.C.res + CASES[1].versions.C.res)}.`));
   }
 }
 render();

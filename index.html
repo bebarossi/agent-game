@@ -58,15 +58,21 @@
   .hint { font-size: 13px; color: var(--orange); margin-top: 4px; font-weight: 700; }
 
   /* reveal */
-  .bars { display: flex; flex-direction: column; gap: 12px; margin-top: 2px; }
+  .bars { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
   .bar { display: grid; grid-template-columns: 1fr 96px; align-items: center; column-gap: 12px; }
-  .bar .lab { font-size: 15px; display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .bar .lab { font-size: 14.5px; display: flex; justify-content: space-between; margin-bottom: 4px; }
   .bar .lab b { font-weight: 700; }
-  .bar .track { height: 22px; background: var(--soft); border-radius: 0 4px 4px 0; position: relative; }
+  .bar .track { height: 16px; background: var(--soft); border-radius: 0 4px 4px 0; position: relative; }
   .bar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; width: 0; transition: width 1.2s ease-out; }
-  .bar .res { white-space: nowrap; font-size: 20px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+  .bar .res { white-space: nowrap; font-size: 18px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
   .agenttag { font-size: 11px; font-weight: 700; color: #fff; background: var(--ink); padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: 2px; }
   .resnote { font-size: 12.5px; color: var(--body); margin-top: 8px; }
+  .vh { font-size: 19px; margin: 18px 0 6px; }
+  .ver { display: grid; grid-template-columns: 26px 1fr 96px; align-items: baseline; border-top: 1px solid var(--line); padding: 7px 0; }
+  .ver .L { font-size: 20px; font-weight: 700; }
+  .ver .d { font-size: 14.5px; line-height: 1.3; color: var(--body); }
+  .ver .d b { color: var(--ink); display: block; font-size: 15px; }
+  .ver .r { font-size: 18px; font-weight: 700; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .why { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; font-size: 15px; line-height: 1.38; color: var(--body); }
   .why b { color: var(--ink); }
 
@@ -98,11 +104,11 @@
     <img class="logo" src="luiss.png" alt="LUISS">
     <div class="kicker">Live experiment</div>
     <h1>Now you are the news agent</h1>
-    <div class="sub">Two real signals from our test. You see what the agent saw: the gap and the headlines. You have 60 seconds to decide.</div>
+    <div class="sub">Two real signals from our test. You see what the agent saw: the gap and the headlines. You have 60 seconds to choose one of three moves. Then we show what our versions A, B and C did.</div>
     <div class="opts">
-      <div class="opt"><div class="L" style="color:var(--green)">A</div><div><b>Bet it closes</b><span>Buy the stock that lags, sell the one that leads. What the strategy does with no agent.</span></div></div>
-      <div class="opt"><div class="L" style="color:var(--gold)">B</div><div><b>Stay out</b><span>The news is real: skip the trade. What our agent does when it blocks.</span></div></div>
-      <div class="opt"><div class="L" style="color:var(--orange)">C</div><div><b>Bet it widens</b><span>The news will push the gap further: take the opposite side.</span></div></div>
+      <div class="opt"><div class="L">1</div><div><b>Buy the laggard, sell the leader</b><span>Bet that the gap closes.</span></div></div>
+      <div class="opt"><div class="L">2</div><div><b>Stay out</b><span>No trade.</span></div></div>
+      <div class="opt"><div class="L">3</div><div><b>Sell the laggard, buy the leader</b><span>Bet that the gap keeps widening.</span></div></div>
     </div>
     <div class="qrbig">
       <div class="qr" data-size="300"></div>
@@ -150,22 +156,24 @@
       <div>
         <div class="news" style="margin-bottom:6px"><h3 id="r-votes-h">The class voted</h3></div>
         <div class="bars" id="r-bars"></div>
-        <div class="resnote">Result of each choice, in dollars, with $10,000 on each leg (before costs).</div>
-        <div class="why" id="r-why"></div>
+        <h3 class="vh">What our versions did</h3>
+        <div id="r-versions"></div>
+        <div class="resnote">Result in dollars, $10,000 on each leg, before costs.</div>
+        
       </div>
     </div>
   </section>
 
   <!-- FINAL -->
   <section class="screen dark" id="s-final">
-    <div class="kicker">The class vs the agent</div>
-    <h1 style="color:#fff">Same rule, same kind of headline, opposite outcomes</h1>
+    <div class="kicker">The class vs our three versions</div>
+    <h1 style="color:#fff">Same kind of headline, opposite outcomes</h1>
     <table class="ftable">
       <colgroup><col style="width:430px"><col><col><col style="width:150px"></colgroup>
       <thead><tr><th></th><th>Case 1 · ISRG–SYK</th><th>Case 2 · CRM–WDAY</th><th>Total</th></tr></thead>
       <tbody id="f-body"></tbody>
     </table>
-    <div class="final-note">The agent blocked both trades for the same reason: a strong headline on one company with an event word. It cannot tell a law firm's press release from a $5.7 billion acquisition. That is why, on the whole test, blocking changed little and following the news lost money.</div>
+    <div class="final-note">Both times the agent saw a strong headline on one company with an event word. It cannot tell a law firm's press release from a $5.7 billion acquisition: B stayed out both times, missing a gain and avoiding a loss, and C read the real deal in the wrong direction. On the whole test, blocking changed little and following the news lost money.</div>
     <div class="pageno" style="color:#777">Group 4 · Data Driven Models for Investment</div>
   </section>
 </div>
@@ -224,10 +232,15 @@ const STEPS = [
   { phase: "final" },
 ];
 const caseOf = (k) => CASES[+k.slice(1)];
-const OPT = {
-  A: { name: "Bet it closes", col: COL.green },
-  B: { name: "Stay out", col: COL.gold },
-  C: { name: "Bet it widens", col: COL.orange },
+const ACT = (c) => ({
+  A: { name: `Buy ${c.A} \u00b7 Sell ${c.B}`, col: COL.ink },
+  B: { name: "Stay out", col: COL.grey },
+  C: { name: `Sell ${c.A} \u00b7 Buy ${c.B}`, col: COL.ink },
+});
+const VER = {
+  A: { name: "A \u00b7 trade every signal", col: COL.green },
+  B: { name: "B \u00b7 agent can block", col: COL.gold },
+  C: { name: "C \u00b7 agent can follow the news", col: COL.orange },
 };
 const money = (v) => (Math.abs(v) < 0.05 ? "$0" : (v > 0 ? "+$" : "\u2212$") + Math.abs(v).toFixed(1));
 
@@ -305,17 +318,22 @@ function renderReveal() {
   const c = caseOf(state.caseKey), idx = +state.caseKey.slice(1);
   const key = "reveal" + state.caseKey;
   document.getElementById("r-kicker").textContent = `Case ${idx + 1} · what really happened`;
-  document.getElementById("r-title").textContent = c.agentRight
-    ? "The agent stayed out. The gap never closed."
-    : "The agent stayed out. The gap closed.";
+  document.getElementById("r-title").textContent = c.revealTitle;
   priceChart(document.getElementById("r-price"), c, { w: 720, h: 330, reveal: true, animate: true });
   zChart(document.getElementById("r-z"), c, { w: 720, h: 104, reveal: true, animate: true });
-  document.getElementById("r-cap").textContent = `${c.nameA} (green) and ${c.nameB} (grey), ${c.dateLabel}, change from the previous close in bps.`;
-  const why = document.getElementById("r-why");
-  why.innerHTML = "";
-  const p1 = document.createElement("div"); const b1 = document.createElement("b"); b1.textContent = "The agent: "; p1.append(b1, c.agentWhy);
-  const p2 = document.createElement("div"); p2.style.marginTop = "8px"; const b2 = document.createElement("b"); b2.textContent = "In reality: "; p2.append(b2, c.truth);
-  why.append(p1, p2);
+  document.getElementById("r-cap").textContent = `${c.nameA} (green) and ${c.nameB} (grey), change from the previous close in bps. In reality: ${c.reality}`;
+  const vh = document.getElementById("r-versions"); vh.innerHTML = "";
+  for (const k of ["A", "B", "C"]) {
+    const v = c.versions[k];
+    const row = document.createElement("div"); row.className = "ver";
+    const L = document.createElement("div"); L.className = "L"; L.textContent = k; L.style.color = VER[k].col;
+    const d = document.createElement("div"); d.className = "d";
+    const b = document.createElement("b"); b.textContent = VER[k].name.slice(4);
+    d.append(b, v.did);
+    const r = document.createElement("div"); r.className = "r"; r.textContent = money(v.res);
+    r.style.color = v.res > 0 ? COL.green : v.res < 0 ? COL.orange : COL.body;
+    row.append(L, d, r); vh.append(row);
+  }
   renderBars(true);
 }
 
@@ -332,13 +350,11 @@ function renderBars(animate) {
       const row = document.createElement("div"); row.className = "bar"; row.dataset.k = k;
       const left = document.createElement("div");
       const lab = document.createElement("div"); lab.className = "lab";
-      const nm = document.createElement("span"); const L = document.createElement("b"); L.textContent = k + "  "; L.style.color = OPT[k].col;
-      nm.append(L, OPT[k].name);
-      if (c.agent === k) { const tag = document.createElement("span"); tag.className = "agenttag"; tag.textContent = "AGENT"; nm.append(tag); }
+      const nm = document.createElement("span"); nm.textContent = ACT(c)[k].name;
       const pct = document.createElement("span"); pct.className = "pct";
       lab.append(nm, pct);
       const tr = document.createElement("div"); tr.className = "track";
-      const f = document.createElement("div"); f.className = "fill"; f.style.background = OPT[k].col; tr.append(f);
+      const f = document.createElement("div"); f.className = "fill"; f.style.background = ACT(c)[k].col; tr.append(f);
       left.append(lab, tr);
       const res = document.createElement("div"); res.className = "res"; res.textContent = money(c.payoff[k]);
       res.style.color = c.payoff[k] > 0 ? COL.green : c.payoff[k] < 0 ? COL.orange : COL.body;
@@ -358,14 +374,15 @@ function renderBars(animate) {
 function renderFinal() {
   const body = document.getElementById("f-body"); body.innerHTML = "";
   const avg = (k) => { const v = votes[k], ks = Object.keys(v); if (!ks.length) return null; const c = caseOf(k); return ks.reduce((s, u) => s + (c.payoff[v[u].c] || 0), 0) / ks.length; };
-  const maj = (k) => { const t = tally(votes[k]); const n = t.A + t.B + t.C; if (!n) return "no votes"; const best = Object.keys(t).sort((a, b) => t[b] - t[a])[0]; return `most chose ${best}, ${OPT[best].name.toLowerCase()} (${Math.round((t[best] / n) * 100)}%)`; };
+  const maj = (k) => { const c = caseOf(k), t = tally(votes[k]); const n = t.A + t.B + t.C; if (!n) return "no votes"; const best = Object.keys(t).sort((a, b) => t[b] - t[a])[0]; return `most: ${ACT(c)[best].name} (${Math.round((t[best] / n) * 100)}%)`; };
   const a0 = avg("c0"), a1 = avg("c1");
-  const fmt = (v) => (v === null ? "–" : money(v));
+  const fmt = (v) => (v === null ? "\u2013" : money(v));
+  const ver = (k, label) => ["", label, null, CASES[0].versions[k].res, CASES[1].versions[k].res, CASES[0].versions[k].res + CASES[1].versions[k].res];
   const rows = [
     ["class", "The class, average per vote", null, a0, a1, a0 === null && a1 === null ? null : (a0 || 0) + (a1 || 0), [maj("c0"), maj("c1")]],
-    ["", "Our agent (B): stayed out both times", null, 0, 0, 0],
-    ["", "No agent (A): bet it closes", null, CASES[0].payoff.A, CASES[1].payoff.A, CASES[0].payoff.A + CASES[1].payoff.A],
-    ["", "Best possible choice", null, Math.max(...Object.values(CASES[0].payoff)), Math.max(...Object.values(CASES[1].payoff)), Math.max(...Object.values(CASES[0].payoff)) + Math.max(...Object.values(CASES[1].payoff))],
+    ver("A", "A \u00b7 trade every signal"),
+    ver("B", "B \u00b7 the agent can block"),
+    ver("C", "C \u00b7 the agent can follow the news"),
   ];
   for (const r of rows) {
     const tr = document.createElement("tr"); if (r[0]) tr.className = r[0];
@@ -392,7 +409,7 @@ function updateTimer() {
     const left = Math.max(0, Math.ceil((state.deadline - be.now()) / 1000));
     tEl.textContent = clockSec(left); tEl.classList.toggle("hot", left <= 10);
     vs.textContent = `${n} vote${n === 1 ? "" : "s"} received`;
-    hint.textContent = left === 0 ? "Time's up. Press space for the answer" : "Scan the code and vote: A, B or C";
+    hint.textContent = left === 0 ? "Time's up. Press space for the answer" : "Scan the code and choose your move";
   }
 }
 const clockSec = (s) => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
