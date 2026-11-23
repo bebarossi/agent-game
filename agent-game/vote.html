@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Vote · You are the news agent</title>
+<style>
+  :root {
+    --green: #0b6e4f; --grey: #9aa0a6; --orange: #e4572e; --gold: #d89b1f;
+    --ink: #222; --body: #6b6b6b; --line: #ddd; --soft: #f4f4f2;
+    --font: "Neue Haas Grotesk Text Pro", "Neue Haas Grotesk Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; font-family: var(--font); color: var(--ink); background: #fff; }
+  main { max-width: 480px; margin: 0 auto; padding: 18px 20px 40px; min-height: 100vh; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+  header img { width: 92px; }
+  header .status { font-size: 12px; color: var(--body); }
+  .kicker { font-size: 13px; font-weight: 700; color: var(--orange); text-transform: uppercase; letter-spacing: .02em; margin-bottom: 6px; }
+  h1 { font-size: 27px; line-height: 1.15; margin: 0 0 10px; }
+  h2 { font-size: 23px; line-height: 1.18; margin: 0 0 8px; }
+  p { font-size: 16px; line-height: 1.4; color: var(--body); margin: 0 0 12px; }
+  .timer { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 12px 0 14px; }
+  .timer.hot { color: var(--orange); }
+  .btn { display: block; width: 100%; text-align: left; border: 2px solid var(--line); border-left-width: 8px; background: #fff; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; font-family: var(--font); color: var(--ink); cursor: pointer; transition: background .15s, border-color .15s; }
+  .btn b { display: block; font-size: 20px; }
+  .btn span { display: block; font-size: 14.5px; color: var(--body); margin-top: 3px; }
+  .btn .L { font-weight: 700; margin-right: 8px; font-size: 20px; }
+  .btn[disabled] { opacity: .45; cursor: default; }
+  .btn.sel { color: #fff; }
+  .btn.sel span { color: rgba(255,255,255,.88); }
+  .btn.sel.locked { opacity: 1; }
+  .note { font-size: 14.5px; color: var(--green); font-weight: 700; min-height: 20px; }
+  .note.err { color: var(--orange); }
+  .result { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 8px; }
+  .big { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 4px 0 8px; }
+  .row { display: flex; justify-content: space-between; font-size: 16px; padding: 9px 0; border-top: 1px solid var(--line); }
+  .row b { font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 12px; }
+  h3 { font-size: 18px; margin: 22px 0 6px; }
+  .wait { font-size: 15px; color: var(--body); margin-top: 22px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; vertical-align: 1px; }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="luiss.png" alt="LUISS"><div class="status" id="status">Connecting…</div></header>
+  <div id="view"><p>Connecting…</p></div>
+</main>
+
+<script type="module">
+import { connect } from "./backend.js?v=5";
+import { CASES } from "./data.js?v=5";
+
+const ACT = (c) => ({
+  A: { name: `Buy ${c.A} \u00b7 Sell ${c.B}`, sub: "Bet the gap closes", col: "#222222" },
+  B: { name: "Stay out", sub: "No trade", col: "#9aa0a6" },
+  C: { name: `Sell ${c.A} \u00b7 Buy ${c.B}`, sub: "Bet the gap keeps widening", col: "#222222" },
+});
+const money = (v) => (Math.abs(v) < 0.05 ? "$0" : (v > 0 ? "+$" : "\u2212$") + Math.abs(v).toFixed(1));
+const view = document.getElementById("view");
+const status = document.getElementById("status");
+const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+
+let be;
+try { be = await connect("voter"); }
+catch (e) { view.innerHTML = ""; view.append(h("h2", "", "Could not connect"), h("p", "", "Check your connection and reload the page.")); throw e; }
+be.joinPresence();
+status.innerHTML = ""; status.append(h("span", "dot"), document.createTextNode(be.mode === "demo" ? "Connected (demo)" : "Connected"));
+
+let state = { phase: "lobby" };
+const mine = { c0: null, c1: null };
+let pending = null, errMsg = "", tick = null, rendered = "";
+
+for (const k of ["c0", "c1"]) be.onMyVote(k, (c) => { mine[k] = c; if (state.caseKey === k) render(true); if (state.phase === "final") render(true); });
+be.onState((s) => { state = Object.assign({ phase: "lobby" }, s); errMsg = ""; render(); });
+
+const caseOf = (k) => CASES[+k.slice(1)];
+const leftSec = () => Math.max(0, Math.ceil((state.deadline - be.now()) / 1000));
+const fmtT = (s) => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+
+function buttons(c, k, enabled) {
+  const wrap = h("div");
+  const act = ACT(c);
+  const chosen = pending || mine[k];
+  for (const o of ["A", "B", "C"]) {
+    const b = h("button", "btn"); b.style.borderLeftColor = act[o].col;
+    b.append(h("b", "", act[o].name), h("span", "", act[o].sub));
+    if (chosen === o) { b.classList.add("sel"); b.style.background = act[o].col; b.style.borderColor = act[o].col; if (!enabled) b.classList.add("locked"); }
+    b.disabled = !enabled;
+    b.onclick = async () => {
+      pending = o; errMsg = ""; render(true);
+      try { await be.vote(k, o); } catch (e) { errMsg = "Voting is closed."; }
+      pending = null; render(true);
+    };
+    wrap.append(b);
+  }
+  return wrap;
+}
+
+function render(force) {
+  const key = state.phase + (state.caseKey || "");
+  if (!force && key === rendered && state.phase !== "vote") return;
+  rendered = key;
+  clearInterval(tick);
+  view.innerHTML = "";
+  const ph = state.phase;
+
+  if (ph === "lobby") {
+    view.append(h("div", "kicker", "Live experiment"), h("h1", "", "You are the news agent"),
+      h("p", "", "Look at the big screen. For each case you'll see two similar stocks that drifted apart, and the headlines published before the signal."),
+      h("p", "", "You'll have 60 seconds to choose: buy the laggard and sell the leader, stay out, or the opposite. Then you'll see what our versions A, B and C did."),
+      h("div", "wait", "Wait for the first case…"));
+    return;
+  }
+
+  if (ph === "intro" || ph === "vote") {
+    const c = caseOf(state.caseKey), idx = +state.caseKey.slice(1);
+    view.append(h("div", "kicker", `Case ${idx + 1} of 2`), h("h2", "", `${c.nameA} vs ${c.nameB}`), h("p", "", c.phoneSummary + " Read the headlines on the big screen."));
+    if (ph === "intro") {
+      view.append(h("div", "timer", "1:00"), buttons(c, state.caseKey, false), h("div", "wait", "Voting opens in a moment…"));
+      return;
+    }
+    const timer = h("div", "timer", fmtT(leftSec())); view.append(timer);
+    const open = leftSec() > 0;
+    view.append(buttons(c, state.caseKey, open));
+    const note = h("div", "note" + (errMsg ? " err" : ""));
+    note.textContent = errMsg || (!open ? (mine[state.caseKey] ? "Time's up. Your vote is in." : "Time's up.") : mine[state.caseKey] ? "Vote saved. You can change it until time's up." : "");
+    view.append(note);
+    if (open) tick = setInterval(() => {
+      const s = leftSec(); timer.textContent = fmtT(s); timer.classList.toggle("hot", s <= 10);
+      if (s === 0) render(true);
+    }, 250);
+    return;
+  }
+
+  if (ph === "reveal") {
+    const c = caseOf(state.caseKey), idx = +state.caseKey.slice(1), my = mine[state.caseKey];
+    view.append(h("div", "kicker", `Case ${idx + 1} · result`), h("h2", "", c.agentRight ? "The gap never closed" : "The gap closed"));
+    const r = h("div", "result");
+    if (my) {
+      r.append(h("p", "", `You chose: ${ACT(c)[my].name}`));
+      const b = h("div", "big", money(c.payoff[my])); b.style.color = c.payoff[my] > 0 ? "#0b6e4f" : c.payoff[my] < 0 ? "#e4572e" : "#6b6b6b"; r.append(b);
+    } else r.append(h("p", "", "You didn't vote on this case."));
+    const row = (a, v) => { const d = h("div", "row"); d.append(h("span", "", a), h("b", "", money(v))); return d; };
+    r.append(row("Version A · trade every signal", c.versions.A.res), row("Version B · agent can block", c.versions.B.res), row("Version C · agent can follow the news", c.versions.C.res));
+    r.append(h("p", "", " "), h("p", "", c.phoneLine));
+    view.append(r, h("div", "wait", "Look at the big screen."));
+    return;
+  }
+
+  if (ph === "final") {
+    let tot = 0, n = 0;
+    for (const k of ["c0", "c1"]) if (mine[k]) { tot += caseOf(k).payoff[mine[k]]; n++; }
+    const col = (v) => (v > 0 ? "#0b6e4f" : v < 0 ? "#e4572e" : "#6b6b6b");
+    const row = (a, v, strong) => { const d = h("div", "row"); const l = h("span", "", a); const r = h("b", "", v === null ? "\u2013" : money(v)); if (v !== null) r.style.color = col(v); if (strong) l.style.fontWeight = 700; d.append(l, r); return d; };
+    const sumV = (k) => CASES[0].versions[k].res + CASES[1].versions[k].res;
+    const best = Math.max(...Object.values(CASES[0].payoff)) + Math.max(...Object.values(CASES[1].payoff));
+
+    view.append(h("div", "kicker", "Your result"), h("h1", "", "Thanks for playing"));
+    const big = h("div", "big", n ? money(Math.round(tot * 10) / 10) : "\u2013"); big.style.color = col(tot);
+    view.append(h("p", "", n ? `Your total over ${n} case${n > 1 ? "s" : ""}, with $10,000 on each leg, before costs:` : "You didn't vote."), big);
+
+    view.append(h("h3", "", "Your choices"));
+    ["c0", "c1"].forEach((k, i) => {
+      const c = caseOf(k);
+      view.append(row(`Case ${i + 1} \u00b7 ${c.A}\u2013${c.B}: ${mine[k] ? ACT(c)[mine[k]].name : "no vote"}`, mine[k] ? c.payoff[mine[k]] : null));
+    });
+
+    view.append(h("h3", "", "Our three versions"));
+    view.append(row("A \u00b7 trade every signal", sumV("A")), row("B \u00b7 the agent can block", sumV("B")), row("C \u00b7 the agent can follow the news", sumV("C")), row("Best possible choice", best));
+
+    view.append(h("h3", "", "What this shows"));
+    view.append(
+      h("p", "", "The signal alone (A) was right in case 1 and wrong in case 2: the gap usually closes, but not when the news behind it is real."),
+      h("p", "", "Our agent saw the same thing both times: a strong headline on one company with an event word. It reads the words, not the meaning, so it cannot tell a law firm\u2019s advert from a $5.7 billion acquisition."),
+      h("p", "", "B stayed out both times: it missed +$37.5 in case 1 and avoided \u2212$95.2 in case 2. C read the Salesforce deal as good news and bought the stock, but the market sold the buyer."),
+      h("p", "", "On the whole test (500 trades, 32 days), B ended $189 below A and C $1,242 below A: reading headlines did not beat trading every signal."),
+      h("p", "", n && tot > sumV("B") ? "You beat our agent: you read what the news meant, not just its words. That is the next step for the project: a stronger agent." : "Next step for the project: an agent that reads what the news means, not just its words."),
+    );
+  }
+}
+render();
+</script>
+</body>
+</html>
